@@ -17,8 +17,8 @@ function activate(context) {
     context.subscriptions.push(save);
     context.subscriptions.push(deletes)
 
-    let configRegistry = vscode.commands.registerCommand('autoscp.config', deploy.newCfg);
-    let allTrans = vscode.commands.registerCommand("autoscp.local2remote", deploy.syncAll);
+    let configRegistry = vscode.commands.registerCommand('vscode-scp.config', deploy.newCfg);
+    let allTrans = vscode.commands.registerCommand("vscode-scp.local2remote", deploy.syncAll);
     context.subscriptions.push(configRegistry);
     context.subscriptions.push(allTrans)
     vscode.window.showInformationMessage("插件激活")
