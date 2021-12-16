@@ -6,6 +6,7 @@
 * 忽略文件
 ## Requirements
 使用前提条件：使用ssh命令将本机的密钥传送到服务器端，从而可以免密登录。
+
 ```
 ssh-copy-id -i ~/.ssh/id_rsa
 

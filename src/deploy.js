@@ -10,7 +10,6 @@ const fs = require("fs")
 const path = require('path');
 const vscode = require("vscode")
 const client = require("node-sshclient");
-const { time } = require("console");
 
 class Deploy {
     constructor() {
@@ -48,20 +47,47 @@ class Deploy {
                 if (direrr) {
                     vscode.window.showInformationMessage(`创建文件夹：${dirname}失败 `)
                 } else {
-                    this.makCfg(cfname)
+                    if (!fs.existsSync(cfname)) {
+                        this.makCfg(cfname)
+                    }
                 }
             })
         } else {
-            this.makCfg(cfname)
+            if (!fs.existsSync(cfname)) {
+                this.makCfg(cfname)
+            }
         }
     }
     readCfg() {
         if (fs.existsSync(this.cfpath)) {
+            const that = this;
             fs.readFile(this.cfpath, (err, data) => {
                 if (err) {
                     console.log(err)
                 } else {
                     this.config = JSON.parse(data.toString("utf-8"))
+                        // 检测根目录和配置是否可用
+                    try {
+                        let options = {
+                            "hostname": this.config["host"],
+                            "port": parseInt(this.config["port"]),
+                            "user": this.config["user"]
+                        }
+                        const ssh = new client.SSH(options)
+                        this.sshCommand(ssh, `cd ${this.config["remotePath"]}`).then((result) => {
+                            if (result["stderr"]) {
+                                that.sshCommand(ssh, `mkdir ${that.config["remotePath"]}`).then((res) => {
+                                    if (res["stderr"]) {
+                                        vscode.window.showErrorMessage(`文件夹${that.config["remotePath"]}不存在，请手动进行创建`)
+                                    } else {
+                                        vscode.window.showInformationMessage("远程文件夹创建成功")
+                                    }
+                                })
+                            }
+                        })
+                    } catch (error) {
+                        vscode.window.showErrorMessage(error)
+                    }
                 }
             })
         }
@@ -74,7 +100,6 @@ class Deploy {
         })
     }
     scpTrans(local_path, remote_path) {
-        console.log("开始传输文件", local_path, remote_path)
         let options = {
             "hostname": this.config["host"],
             "port": parseInt(this.config["port"]),
