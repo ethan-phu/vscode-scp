@@ -20,8 +20,7 @@ function activate(context) {
     let configRegistry = vscode.commands.registerCommand('vscode-scp.config', deploy.newCfg);
     let allTrans = vscode.commands.registerCommand("vscode-scp.local2remote", deploy.syncAll);
     context.subscriptions.push(configRegistry);
-    context.subscriptions.push(allTrans)
-    vscode.window.showInformationMessage("插件激活")
+    context.subscriptions.push(allTrans);
 }
 
 // this method is called when your extension is deactivated

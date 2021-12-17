@@ -33,9 +33,9 @@ class Deploy {
     "uploadOnSave": true
 }`, (err) => {
             if (err) {
-                vscode.window.showInformationMessage(`配置文件创建失败`)
+                vscode.window.showInformationMessage(`The Configure File is Created Failed`)
             } else {
-                vscode.window.showInformationMessage(`创建配置文件成功`)
+                vscode.window.showInformationMessage(`Created the Configure File in .vscode`)
                 vscode.workspace.openTextDocument(cfname).then(
                     document => vscode.window.showTextDocument(document));
             }
@@ -47,7 +47,7 @@ class Deploy {
         if (!fs.existsSync(dirname)) {
             fs.mkdir(dirname, (direrr) => {
                 if (direrr) {
-                    vscode.window.showInformationMessage(`创建文件夹：${dirname}失败 `)
+                    vscode.window.showErrorMessage(`Create Folder${dirname} Failed`)
                 } else {
                     if (!fs.existsSync(cfname)) {
                         this.makCfg(cfname)
@@ -77,7 +77,7 @@ class Deploy {
                                         if (res["stderr"]) {
                                             vscode.window.showErrorMessage(res["stderr"])
                                         } else {
-                                            vscode.window.showInformationMessage(`远程文件夹${that.config["remotePath"]}创建成功`)
+                                            vscode.window.showInformationMessage(`Remote Folder ${that.config["remotePath"]} Create Success`)
                                         }
                                     })
                                 }
@@ -143,18 +143,20 @@ class Deploy {
     }
     syncToRemote({ fileName }) {
         const that = this;
-        this.scpToRemote(fileName).then((res) => {
-            let remote_path = fileName.replace(that.root_path, "").replace(/[\\]/g, '/')
+        let remote_path = path.dirname(fileName.replace(that.root_path, that.config["remotePath"]).replace(/[\\]/g, '/'))
+
+        this.scpToRemote(fileName, remote_path).then((res) => {
+            remote_path = fileName.replace(that.root_path, "").replace(/[\\]/g, '/')
             if (res["code"] == 200) {
-                vscode.window.showInformationMessage(`同步成功：${remote_path}`)
+                vscode.window.showInformationMessage(`Sync File Success：${remote_path}`)
             } else {
                 if (res["code"] == 2) {
-                    vscode.window.showErrorMessage(`同步失败：${remote_path}`)
+                    vscode.window.showErrorMessage(`Sync File Failed：${remote_path}`)
                 }
             }
         })
     }
-    scpToRemote(fileName) {
+    scpToRemote(fileName, remote_path) {
         /***
          * code:
          * 0:表示缺少远程地址
@@ -166,14 +168,13 @@ class Deploy {
                 that.readCfg()
                 if (that.config["uploadOnSave"]) {
                     if (!that.config["remotePath"]) {
-                        vscode.window.showErrorMessage("配置文件缺少remotePath,请填写完整")
+                        vscode.window.showErrorMessage("Losing the config of remotePath, please configure it")
                         resolve({
                             "status": false,
                             "code": 0
                         })
                     }
                     let local_path = fileName
-                    let remote_path = path.dirname(fileName.replace(that.root_path, that.config["remotePath"]).replace(/[\\]/g, '/'))
                     if (local_path.indexOf(".vscode") != -1) {
                         resolve({
                             "status": false,
@@ -232,10 +233,14 @@ class Deploy {
 
     syncAll() {
         const that = this;
-        const zip_path = `${this.root_path}/tmp.zip`
+        console.log(path.dirname(this.root_path))
+        const zip_dir = path.dirname(this.root_path)
+        const zip_path = `${zip_dir}/tmp.zip`
         zipFolder(that.root_path, zip_path, (err) => {
             if (!err) {
-                that.scpToRemote(zip_path).then((res) => {
+                let remote_path = path.dirname(zip_path.replace(zip_dir, that.config["remotePath"]).replace(/[\\]/g, '/'))
+                that.scpToRemote(zip_path, remote_path).then((res) => {
+                    console.log(res)
                     fs.unlinkSync(zip_path)
                     switch (res["code"]) {
                         case 0:
@@ -243,14 +248,14 @@ class Deploy {
                         case 1:
                             break;
                         case 2:
-                            vscode.window.showErrorMessage("本地代码和远程代码同步失败")
+                            vscode.window.showErrorMessage("Sync Failed: source code on local not sync to remote")
                             break;
                         default:
                             const remote_path = that.config["remotePath"]
                             that.sshCommand(`unzip -o ${remote_path}/tmp.zip -d ${remote_path}/`).then((result) => {
                                 if (!result["stderr"]) {
                                     that.sshCommand(`rm -rf ${remote_path}/tmp.zip`)
-                                    vscode.window.showInformationMessage("本地代码和远程代码同步成功")
+                                    vscode.window.showInformationMessage("Sync Source code Success")
                                 }
                             })
                     }

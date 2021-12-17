@@ -1,32 +1,48 @@
 # scp sync extension for VS code
 
-这是一款面向服务器默认关闭 sftp 功能场景的使用 scp 来进行自动化同步文件的软件。
-
-## 功能特点
-
-- 保存自动同步
-- 全局同步
-- 忽略文件
+This extension will use the ssh2 to transfer the file you need from workspace to a remote server. The scenario for the remote server is that when the sftp protocol is not enabled, we just can use ssh to transfer our files.
+## Features
+This extension has the following features:
+1. Global file synchronization: click on right button on your mouse in the workspace and select the vscode-scp: local->remote function. This plugin will automatically copy the files in the workspace to the remote server. If there is no corresponding working directory in the remote server, it will be created automatically .
+2. Automatically sync when saving: when the file be saved, the file will be direct send to you remote server.
+3. Automatic configuration generation: click on right button on you mouse or Ctrl+Shift+P input the command and run: vscode-scp: Config. The extention will automic to generate a template config on .vscode, and you will find a name with scp.json file.
 
 ## Requirements
 
-使用前提条件：使用 ssh 命令将本机的密钥传送到服务器端，从而可以免密登录。
+Prerequisites for use: Use the ssh command to transfer the key of you computer to the server, so that you can login without password.
 
-```
+```bash
 ssh-copy-id -i ~/.ssh/id_rsa
 
 ```
 
-## 使用
+## Instructions for use
+1. Bring up the command pallet (Ctrl+Shift+P or Cmd+Shift+P on Mac) and run the below command: vscode-scp: Config
+2. change the parameters to the appropriate values for your system.
 
-1. 在电脑中通过 Ctrl+Shift+P 打开命令，输入并运行: vscode-scp: Config
-2. 配置文件自动生成在.vscode/scp.json 中，按照自己的需求进行配置好。
+```json
+{
+    "host": "LocalHost",
+    "port": 22,
+    "user": "root",
+    "ignore":[".git",".vscode"],
+    "remotePath": "/root",
+    "uploadOnSave": true
+}
 
-## 更新日志
+```
 
+## Commands
+
+| Command      | Description |
+| ----------- | ----------- |
+| vscode-scp: Config      | Generate Config Template       |
+| vscode-scp: Local->Remote   | Sync the file from local to remote        |
+
+
+## Release Notes
 ### 0.0.1
-
-插件完成第一个版本
+Initial release of Sphere99.VsCode.
 
 ---
 
