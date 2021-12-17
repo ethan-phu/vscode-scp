@@ -2,7 +2,7 @@
     "name": "vscode-scp",
     "displayName": "vscode-scp",
     "description": "vscode sync file to remote server by scp proto when sftp is closed",
-    "version": "0.0.11",
+    "version": "0.0.12",
     "publisher": "aminkira",
     "repository": {
         "github": "https://github.com/TobiasHu2021/vscode-scp"
@@ -24,24 +24,20 @@
     "main": "./extension.js",
     "contributes": {
         "commands": [{
-                "command": "vscode-scp.config",
-                "title": "vscode-scp:Config"
-            },
-            {
-                "command": "vscode-scp.local2remote",
-                "title": "vscode-scp:Local->Remote"
-            }
-        ],
+            "command": "vscode-scp.config",
+            "title": "vscode-scp: Config"
+        }, {
+            "command": "vscode-scp.local2remote",
+            "title": "vscode-scp: Local->Rmote"
+        }],
         "menus": {
             "explorer/context": [{
-                    "command": "vscode-scp.config",
-                    "when": "explorerResourceIsFolder"
-                },
-                {
-                    "command": "vscode-scp.local2remote",
-                    "when": "explorerResourceIsFolder"
-                }
-            ]
+                "command": "vscode-scp.config",
+                "when": "explorerResourceIsFolder"
+            }, {
+                "command": "vscode-scp.local2remote",
+                "when": "explorerResourceIsFolder"
+            }]
         }
     },
     "scripts": {
@@ -50,7 +46,8 @@
         "test": "node ./test/runTest.js"
     },
     "dependencies": {
-        "node-sshclient": "^0.2.0"
+        "node-sshclient": "^0.2.0",
+        "zip-folder": "^1.0.0"
     },
     "devDependencies": {
         "@types/glob": "^7.1.4",

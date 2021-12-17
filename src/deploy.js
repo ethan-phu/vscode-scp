@@ -10,16 +10,17 @@ const fs = require("fs")
 const path = require('path');
 const vscode = require("vscode")
 const client = require("node-sshclient");
+const zipFolder = require('zip-folder')
 class Deploy {
     constructor() {
         this.syncToRemote = this.syncToRemote.bind(this);
         this.syncAll = this.syncAll.bind(this);
-        this.travel = this.travel.bind(this);
         this.newCfg = this.newCfg.bind(this);
         this.scpTrans = this.scpTrans.bind(this);
         this.deleteFromRemote = this.deleteFromRemote.bind(this);
         this.root_path = vscode.workspace.workspaceFolders[0]["uri"]["_fsPath"];
         this.cfpath = this.root_path + "/.vscode/scp.json";
+        this.options = {}
         this.readCfg()
     }
     makCfg(cfname) {
@@ -69,17 +70,10 @@ class Deploy {
                     this.config = JSON.parse(data.toString("utf-8"))
                         // 检测根目录和配置是否可用
                     try {
-                        let options = {
-                            "hostname": this.config["host"],
-                            "port": parseInt(this.config["port"]),
-                            "user": this.config["user"]
-                        }
                         if (this.config["host"].indexOf(".") != -1) {
-                            const ssh = new client.SSH(options)
-                            this.sshCommand(ssh, `cd ${this.config["remotePath"]}`).then((result) => {
+                            this.sshCommand(`cd ${this.config["remotePath"]}`).then((result) => {
                                 if (result["stderr"]) {
-                                    console.log(result["stderr"])
-                                    that.sshCommand(ssh, `mkdir ${that.config["remotePath"]}`).then((res) => {
+                                    that.sshCommand(`mkdir ${that.config["remotePath"]}`).then((res) => {
                                         if (res["stderr"]) {
                                             vscode.window.showErrorMessage(res["stderr"])
                                         } else {
@@ -96,110 +90,173 @@ class Deploy {
             })
         }
     }
-    sshCommand(ssh, command) {
+    sshCommand(command) {
+        const that = this;
+        that.options = {
+            "hostname": that.config["host"],
+            "port": parseInt(that.config["port"]),
+            "user": that.config["user"]
+        }
         return new Promise((resolve) => {
+            const ssh = new client.SSH(that.options)
             ssh.command(command, (result) => {
                 resolve(result)
             })
         })
     }
     scpTrans(local_path, remote_path) {
-        let options = {
-            "hostname": this.config["host"],
-            "port": parseInt(this.config["port"]),
-            "user": this.config["user"]
-        }
-        const scp = new client.SCP(options)
-        const ssh = new client.SSH(options)
-        this.sshCommand(ssh, `cd ${remote_path}`).then((result) => {
-            if (result["stderr"]) {
-                this.sshCommand(ssh, `mkdir ${remote_path}`).then((res) => {
-                    if (res["stderr"]) {
-                        vscode.window.showErrorMessage(res["stderr"])
-                    } else {
-                        scp.upload(local_path, remote_path, (result) => {
-                            if (result["stderr"]) {
-                                vscode.window.showErrorMessage(result["stderr"])
-                            } else {
-                                vscode.window.showInformationMessage(`同步成功: ${local_path}`)
-                            }
-                        })
-                    }
-                })
-            } else {
-                scp.upload(local_path, remote_path, (result) => {
-                    if (result["stderr"]) {
-                        vscode.window.showErrorMessage(result["stderr"])
-                    } else {
-                        vscode.window.showInformationMessage(`同步成功: ${local_path}`)
-                    }
-                })
+        const that = this;
+        return new Promise((resolve) => {
+            that.options = {
+                "hostname": that.config["host"],
+                "port": parseInt(that.config["port"]),
+                "user": that.config["user"]
             }
-        })
-    }
-    travel(dir) {
-        let that = this
-        fs.readdir(dir, (err, files) => {
-            if (err) {
-                console.log(err)
-            } else {
-                files.forEach((file) => {
-                    var pathname = path.join(dir, file)
-                    fs.stat(pathname, (err, stats) => {
-                        if (err) {
-                            console.log(err)
-                        } else if (stats.isDirectory()) {
-                            that.travel(pathname)
+            const scp = new client.SCP(that.options)
+            that.sshCommand(`cd ${remote_path}`).then((result) => {
+                if (result["stderr"]) {
+                    this.sshCommand(`mkdir ${remote_path}`).then((res) => {
+                        if (res["stderr"]) {
+                            vscode.window.showErrorMessage(res["stderr"])
+                            resolve(false)
                         } else {
-                            that.scpToRemote(pathname)
+                            scp.upload(local_path, remote_path, (result) => {
+                                if (result["stderr"]) {
+                                    vscode.window.showErrorMessage(result["stderr"])
+                                    resolve(false)
+                                }
+                                resolve(true)
+                            })
                         }
                     })
-                })
-            }
+                } else {
+                    scp.upload(local_path, remote_path, (result) => {
+                        if (result["stderr"]) {
+                            vscode.window.showErrorMessage(result["stderr"])
+                            resolve(false)
+                        }
+                        resolve(true)
+                    })
+                }
+            })
         })
     }
     syncToRemote({ fileName }) {
-        this.scpToRemote(fileName)
+        const that = this;
+        this.scpToRemote(fileName).then((res) => {
+            let remote_path = fileName.replace(that.root_path, "").replace(/[\\]/g, '/')
+            if (res["code"] == 200) {
+                vscode.window.showInformationMessage(`同步成功：${remote_path}`)
+            } else {
+                if (res["code"] == 2) {
+                    vscode.window.showErrorMessage(`同步失败：${remote_path}`)
+                }
+            }
+        })
     }
     scpToRemote(fileName) {
-        if (fs.existsSync(this.cfpath) && this.config["host"] && this.config["host"].indexOf(".") != -1) {
-            this.readCfg()
-            if (this.config["uploadOnSave"]) {
-                if (!this.config["remotePath"]) {
-                    vscode.window.showErrorMessage("配置文件缺少remotePath,请填写完整")
-                    return;
-                }
-                let local_path = fileName
-                let remote_path = path.dirname(fileName.replace(this.root_path, this.config["remotePath"]).replace(/[\\]/g, '/'))
-                if (local_path.indexOf(".vscode") != -1) {
-                    return;
-                }
-                let dir_list = local_path.split("\\")
-                if (this.config["ignore"] && this.config["ignore"].length > 0) {
-                    for (let i = 0; i < this.config["ignore"].length; i++) {
-                        let dir = this.config["ignore"][i]
-                        for (let j = 0; j < dir_list.length; j++) {
-                            let fdir = dir_list[j]
-                            if (dir == fdir) {
-                                return;
-                            }
-                        }
-
+        /***
+         * code:
+         * 0:表示缺少远程地址
+         * 1. 
+         */
+        const that = this;
+        return new Promise((resolve) => {
+            if (fs.existsSync(that.cfpath) && that.config["host"] && that.config["host"].indexOf(".") != -1) {
+                that.readCfg()
+                if (that.config["uploadOnSave"]) {
+                    if (!that.config["remotePath"]) {
+                        vscode.window.showErrorMessage("配置文件缺少remotePath,请填写完整")
+                        resolve({
+                            "status": false,
+                            "code": 0
+                        })
                     }
-                    this.scpTrans(local_path, remote_path)
-                } else {
-                    this.scpTrans(local_path, remote_path)
-                }
+                    let local_path = fileName
+                    let remote_path = path.dirname(fileName.replace(that.root_path, that.config["remotePath"]).replace(/[\\]/g, '/'))
+                    if (local_path.indexOf(".vscode") != -1) {
+                        resolve({
+                            "status": false,
+                            "code": 1
+                        })
+                    }
+                    let dir_list = local_path.split("\\")
+                    if (that.config["ignore"] && that.config["ignore"].length > 0) {
+                        for (let i = 0; i < that.config["ignore"].length; i++) {
+                            let dir = that.config["ignore"][i]
+                            for (let j = 0; j < dir_list.length; j++) {
+                                let fdir = dir_list[j]
+                                if (dir == fdir) {
+                                    resolve({
+                                        "status": false,
+                                        "code": 0
+                                    })
+                                }
+                            }
 
+                        }
+                        that.scpTrans(local_path, remote_path).then((flag) => {
+                            if (flag) {
+                                resolve({
+                                    "status": true,
+                                    "code": 200
+                                })
+                            }
+                            resolve({
+                                "status": false,
+                                "code": 2
+                            })
+                        })
+                    } else {
+                        that.scpTrans(local_path, remote_path).then((flag) => {
+                            if (flag) {
+                                resolve({
+                                    "status": true,
+                                    "code": 200
+                                })
+                            }
+                            resolve({
+                                "status": false,
+                                "code": 2
+                            })
+                        })
+                    }
+
+                }
             }
-        }
+        })
     }
     deleteFromRemote(files) {
         console.log(files)
     }
 
     syncAll() {
-        this.travel(this.root_path)
+        const that = this;
+        const zip_path = `${this.root_path}/tmp.zip`
+        zipFolder(that.root_path, zip_path, (err) => {
+            if (!err) {
+                that.scpToRemote(zip_path).then((res) => {
+                    fs.unlinkSync(zip_path)
+                    switch (res["code"]) {
+                        case 0:
+                            break;
+                        case 1:
+                            break;
+                        case 2:
+                            vscode.window.showErrorMessage("本地代码和远程代码同步失败")
+                            break;
+                        default:
+                            const remote_path = that.config["remotePath"]
+                            that.sshCommand(`unzip -o ${remote_path}/tmp.zip -d ${remote_path}/`).then((result) => {
+                                if (!result["stderr"]) {
+                                    that.sshCommand(`rm -rf ${remote_path}/tmp.zip`)
+                                    vscode.window.showInformationMessage("本地代码和远程代码同步成功")
+                                }
+                            })
+                    }
+                })
+            }
+        })
     }
     deactivate() {
         util.channel.dispose();
