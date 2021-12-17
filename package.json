@@ -1,65 +1,66 @@
 {
-  "name": "vscode-scp",
-  "displayName": "vscode-scp",
-  "description": "vscode sync file by scp proto",
-  "version": "0.0.8",
-  "publisher": "aminkira",
-  "icon": "./static/vscode-scp.png",
-  "engines": {
-    "vscode": "^1.63.0"
-  },
-  "categories": [
-    "Other"
-  ],
-  "activationEvents": [
-    "onCommand:vscode-scp.config",
-    "onCommand:vscode-scp.local2remote",
-    "onFileSystem:scp",
-    "onStartupFinished",
-    "workspaceContains:**/scp.json"
-  ],
-  "main": "./extension.js",
-  "contributes": {
-    "commands": [
-      {
-        "command": "vscode-scp.config",
-        "title": "vscode-scp:Config"
-      },
-      {
-        "command": "vscode-scp.local2remote",
-        "title": "vscode-scp:Local->Remote"
-      }
+    "name": "vscode-scp",
+    "displayName": "vscode-scp",
+    "description": "vscode sync file to remote server by scp proto when sftp is closed",
+    "version": "0.0.11",
+    "publisher": "aminkira",
+    "repository": {
+        "github": "https://github.com/TobiasHu2021/vscode-scp"
+    },
+    "icon": "static/vscode-scp.png",
+    "engines": {
+        "vscode": "^1.63.0"
+    },
+    "categories": [
+        "Other"
     ],
-    "menus": {
-      "explorer/context": [
-        {
-          "command": "vscode-scp.config",
-          "when": "explorerResourceIsFolder"
-        },
-        {
-          "command": "autoscp.local2remote",
-          "when": "explorerResourceIsFolder"
+    "activationEvents": [
+        "onCommand:vscode-scp.config",
+        "onCommand:vscode-scp.local2remote",
+        "onFileSystem:scp",
+        "onStartupFinished",
+        "workspaceContains:**/scp.json"
+    ],
+    "main": "./extension.js",
+    "contributes": {
+        "commands": [{
+                "command": "vscode-scp.config",
+                "title": "vscode-scp:Config"
+            },
+            {
+                "command": "vscode-scp.local2remote",
+                "title": "vscode-scp:Local->Remote"
+            }
+        ],
+        "menus": {
+            "explorer/context": [{
+                    "command": "vscode-scp.config",
+                    "when": "explorerResourceIsFolder"
+                },
+                {
+                    "command": "vscode-scp.local2remote",
+                    "when": "explorerResourceIsFolder"
+                }
+            ]
         }
-      ]
+    },
+    "scripts": {
+        "lint": "eslint .",
+        "pretest": "npm run lint",
+        "test": "node ./test/runTest.js"
+    },
+    "dependencies": {
+        "node-sshclient": "^0.2.0"
+    },
+    "devDependencies": {
+        "@types/glob": "^7.1.4",
+        "@types/mocha": "^9.0.0",
+        "@types/node": "14.x",
+        "@types/vscode": "^1.63.0",
+        "@vscode/test-electron": "^1.6.2",
+        "eslint": "^8.1.0",
+        "glob": "^7.1.7",
+        "mocha": "^9.1.3",
+        "typescript": "^4.4.4"
     }
-  },
-  "scripts": {
-    "lint": "eslint .",
-    "pretest": "npm run lint",
-    "test": "node ./test/runTest.js"
-  },
-  "dependencies": {
-    "node-sshclient": "^0.2.0"
-  },
-  "devDependencies": {
-    "@types/glob": "^7.1.4",
-    "@types/mocha": "^9.0.0",
-    "@types/node": "14.x",
-    "@types/vscode": "^1.63.0",
-    "@vscode/test-electron": "^1.6.2",
-    "eslint": "^8.1.0",
-    "glob": "^7.1.7",
-    "mocha": "^9.1.3",
-    "typescript": "^4.4.4"
-  }
 }

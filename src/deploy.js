@@ -10,7 +10,6 @@ const fs = require("fs")
 const path = require('path');
 const vscode = require("vscode")
 const client = require("node-sshclient");
-
 class Deploy {
     constructor() {
         this.syncToRemote = this.syncToRemote.bind(this);
@@ -36,6 +35,8 @@ class Deploy {
                 vscode.window.showInformationMessage(`配置文件创建失败`)
             } else {
                 vscode.window.showInformationMessage(`创建配置文件成功`)
+                vscode.workspace.openTextDocument(cfname).then(
+                    document => vscode.window.showTextDocument(document));
             }
         })
     }
@@ -73,18 +74,21 @@ class Deploy {
                             "port": parseInt(this.config["port"]),
                             "user": this.config["user"]
                         }
-                        const ssh = new client.SSH(options)
-                        this.sshCommand(ssh, `cd ${this.config["remotePath"]}`).then((result) => {
-                            if (result["stderr"]) {
-                                that.sshCommand(ssh, `mkdir ${that.config["remotePath"]}`).then((res) => {
-                                    if (res["stderr"]) {
-                                        vscode.window.showErrorMessage(`文件夹${that.config["remotePath"]}不存在，请手动进行创建`)
-                                    } else {
-                                        vscode.window.showInformationMessage("远程文件夹创建成功")
-                                    }
-                                })
-                            }
-                        })
+                        if (this.config["host"].indexOf(".") != -1) {
+                            const ssh = new client.SSH(options)
+                            this.sshCommand(ssh, `cd ${this.config["remotePath"]}`).then((result) => {
+                                if (result["stderr"]) {
+                                    console.log(result["stderr"])
+                                    that.sshCommand(ssh, `mkdir ${that.config["remotePath"]}`).then((res) => {
+                                        if (res["stderr"]) {
+                                            vscode.window.showErrorMessage(res["stderr"])
+                                        } else {
+                                            vscode.window.showInformationMessage(`远程文件夹${that.config["remotePath"]}创建成功`)
+                                        }
+                                    })
+                                }
+                            })
+                        }
                     } catch (error) {
                         vscode.window.showErrorMessage(error)
                     }
@@ -114,22 +118,20 @@ class Deploy {
                         vscode.window.showErrorMessage(res["stderr"])
                     } else {
                         scp.upload(local_path, remote_path, (result) => {
-                            console.log(result)
                             if (result["stderr"]) {
                                 vscode.window.showErrorMessage(result["stderr"])
                             } else {
-                                vscode.window.showInformationMessage("同步成功")
+                                vscode.window.showInformationMessage(`同步成功: ${local_path}`)
                             }
                         })
                     }
                 })
             } else {
                 scp.upload(local_path, remote_path, (result) => {
-                    console.log(result)
                     if (result["stderr"]) {
                         vscode.window.showErrorMessage(result["stderr"])
                     } else {
-                        vscode.window.showInformationMessage("同步成功")
+                        vscode.window.showInformationMessage(`同步成功: ${local_path}`)
                     }
                 })
             }
@@ -160,7 +162,7 @@ class Deploy {
         this.scpToRemote(fileName)
     }
     scpToRemote(fileName) {
-        if (fs.existsSync(this.cfpath)) {
+        if (fs.existsSync(this.cfpath) && this.config["host"] && this.config["host"].indexOf(".") != -1) {
             this.readCfg()
             if (this.config["uploadOnSave"]) {
                 if (!this.config["remotePath"]) {
@@ -172,12 +174,17 @@ class Deploy {
                 if (local_path.indexOf(".vscode") != -1) {
                     return;
                 }
-
+                let dir_list = local_path.split("\\")
                 if (this.config["ignore"] && this.config["ignore"].length > 0) {
-                    for (let dir in this.config["ignore"]) {
-                        if (local_path.indexOf(dir) != -1) {
-                            return;
+                    for (let i = 0; i < this.config["ignore"].length; i++) {
+                        let dir = this.config["ignore"][i]
+                        for (let j = 0; j < dir_list.length; j++) {
+                            let fdir = dir_list[j]
+                            if (dir == fdir) {
+                                return;
+                            }
                         }
+
                     }
                     this.scpTrans(local_path, remote_path)
                 } else {
