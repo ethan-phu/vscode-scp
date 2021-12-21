@@ -1,4 +1,6 @@
 # scp sync extension for VS code
+our source is open on [github](https://github.com/TobiasHu2021/vscode-scp) [downloads](https://marketplace.visualstudio.com/manage/publishers/aminkira/extensions/vscode-scp)
+
 
 This extension will use the ssh2 to transfer the file you need from workspace to a remote server. The scenario for the remote server is that when the sftp protocol is not enabled, we just can use ssh to transfer our files.
 ## Features
@@ -42,7 +44,7 @@ ssh-copy-id -i ~/.ssh/id_rsa
 
 ## Release Notes
 ### 0.0.1
-Initial release of Sphere99.VsCode.
+Initial release of vscode-scp
 
 ---
 

@@ -2,7 +2,7 @@
     "name": "vscode-scp",
     "displayName": "vscode-scp",
     "description": "vscode sync file to remote server by scp proto when sftp is closed",
-    "version": "0.0.20",
+    "version": "0.0.21",
     "publisher": "aminkira",
     "repository": {
         "github": "https://github.com/TobiasHu2021/vscode-scp"
