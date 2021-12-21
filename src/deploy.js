@@ -70,7 +70,7 @@ class Deploy {
                     this.config = JSON.parse(data.toString("utf-8"))
                         // 检测根目录和配置是否可用
                     try {
-                        if (this.config["host"].indexOf(".") != -1) {
+                        if (this.config["host"].indexOf(".") != -1 && this.config["uploadOnSave"]) {
                             this.sshCommand(`cd ${this.config["remotePath"]}`).then((result) => {
                                 if (result["stderr"]) {
                                     that.sshCommand(`mkdir ${that.config["remotePath"]}`).then((res) => {
@@ -240,7 +240,6 @@ class Deploy {
             if (!err) {
                 let remote_path = path.dirname(zip_path.replace(zip_dir, that.config["remotePath"]).replace(/[\\]/g, '/'))
                 that.scpToRemote(zip_path, remote_path).then((res) => {
-                    console.log(res)
                     fs.unlinkSync(zip_path)
                     switch (res["code"]) {
                         case 0:
@@ -254,8 +253,11 @@ class Deploy {
                             const remote_path = that.config["remotePath"]
                             that.sshCommand(`unzip -o ${remote_path}/tmp.zip -d ${remote_path}/`).then((result) => {
                                 if (!result["stderr"]) {
+                                    vscode.window.showInformationMessage("pack file into zip is success")
                                     that.sshCommand(`rm -rf ${remote_path}/tmp.zip`)
                                     vscode.window.showInformationMessage("Sync Source code Success")
+                                } else {
+                                    vscode.window.showErrorMessage("pack the file is fail")
                                 }
                             })
                     }
