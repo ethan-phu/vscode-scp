@@ -10,7 +10,8 @@ const fs = require("fs")
 const path = require('path');
 const vscode = require("vscode")
 const client = require("node-sshclient");
-const zipFolder = require('zip-folder')
+const zipfolder = require('zip-a-folder')
+
 class Deploy {
     constructor() {
         this.syncToRemote = this.syncToRemote.bind(this);
@@ -236,34 +237,32 @@ class Deploy {
         console.log(path.dirname(this.root_path))
         const zip_dir = path.dirname(this.root_path)
         const zip_path = `${zip_dir}/tmp.zip`
-        zipFolder(that.root_path, zip_path, (err) => {
-            if (!err) {
-                let remote_path = path.dirname(zip_path.replace(zip_dir, that.config["remotePath"]).replace(/[\\]/g, '/'))
-                that.scpToRemote(zip_path, remote_path).then((res) => {
-                    fs.unlinkSync(zip_path)
-                    switch (res["code"]) {
-                        case 0:
-                            break;
-                        case 1:
-                            break;
-                        case 2:
-                            vscode.window.showErrorMessage("Sync Failed: source code on local not sync to remote")
-                            break;
-                        default:
-                            const remote_path = that.config["remotePath"]
-                            that.sshCommand(`unzip -o ${remote_path}/tmp.zip -d ${remote_path}/`).then((result) => {
-                                if (!result["stderr"]) {
-                                    vscode.window.showInformationMessage("pack file into zip is success")
-                                    that.sshCommand(`rm -rf ${remote_path}/tmp.zip`)
-                                    vscode.window.showInformationMessage("Sync Source code Success")
-                                } else {
-                                    vscode.window.showErrorMessage("pack the file is fail")
-                                }
-                            })
-                    }
-                })
-            }
-        })
+        zipfolder.ZipAFolder.zip(that.root_path, zip_path).then(()=>{
+            let remote_path = path.dirname(zip_path.replace(zip_dir, that.config["remotePath"]).replace(/[\\]/g, '/'))
+            that.scpToRemote(zip_path, remote_path).then((res) => {
+                fs.unlinkSync(zip_path)
+                switch (res["code"]) {
+                    case 0:
+                        break;
+                    case 1:
+                        break;
+                    case 2:
+                        vscode.window.showErrorMessage("Sync Failed: source code on local not sync to remote")
+                        break;
+                    default:
+                        const remote_path = that.config["remotePath"]
+                        that.sshCommand(`unzip -o ${remote_path}/tmp.zip -d ${remote_path}/`).then((result) => {
+                            if (!result["stderr"]) {
+                                vscode.window.showInformationMessage("pack file into zip is success")
+                                that.sshCommand(`rm -rf ${remote_path}/tmp.zip`)
+                                vscode.window.showInformationMessage("Sync Source code Success")
+                            } else {
+                                vscode.window.showErrorMessage("pack the file is fail")
+                            }
+                        })
+                }
+            })
+        });
     }
     deactivate() {
         util.channel.dispose();
