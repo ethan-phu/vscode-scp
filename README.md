@@ -46,6 +46,8 @@ ssh-copy-id -i ~/.ssh/id_rsa
 ### 0.0.1
 Initial release of vscode-scp
 
+### 0.0.22
+Fix some bugs
 ---
 
 **Enjoy!**
