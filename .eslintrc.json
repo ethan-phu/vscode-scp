@@ -6,20 +6,39 @@
 		"node": true,
 		"mocha": true
 	},
+	"parser": "@typescript-eslint/parser",
 	"parserOptions": {
-		"ecmaVersion": 2018,
-		"ecmaFeatures": {
-			"jsx": true
-		},
+		"ecmaVersion": 2020,
 		"sourceType": "module"
 	},
+	"plugins": [
+		"@typescript-eslint"
+	],
 	"rules": {
+		"@typescript-eslint/naming-convention": [
+			"warn",
+			{
+				"selector": "import",
+				"format": ["camelCase", "PascalCase"]
+			}
+		],
+		"@typescript-eslint/semi": "warn",
+		"curly": "warn",
+		"eqeqeq": "warn",
+		"no-throw-literal": "warn",
+		"semi": "off",
 		"no-const-assign": "warn",
 		"no-this-before-super": "warn",
-		"no-undef": "warn",
+		"no-undef": "off",
 		"no-unreachable": "warn",
-		"no-unused-vars": "warn",
+		"no-unused-vars": "off",
 		"constructor-super": "warn",
 		"valid-typeof": "warn"
-	}
+	},
+	"ignorePatterns": [
+		"node_modules",
+		"out",
+		"test",
+		"*.js"
+	]
 }
